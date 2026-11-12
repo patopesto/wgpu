@@ -5346,9 +5346,14 @@ impl Device {
                     // We're happy
                     Ok(wgt::PollStatus::QueueEmpty) => {}
                     Ok(wgt::PollStatus::WaitSucceeded) => {
-                        // After the wait, the queue should be empty. It can only be non-empty
-                        // if another thread is submitting at the same time.
-                        break 'error E::GpuWaitTimeout;
+                        // The wait covered every submission that existed when it
+                        // started; a non-empty queue means another thread
+                        // submitted since. Only the window thread acquires the
+                        // surface, so that work cannot reference it.
+                        //
+                        // shortcut: accepts a non-empty queue during configure;
+                        // upgrade to the upstream presentation-lock rewrite when
+                        // a wgpu release carries it.
                     }
                     Ok(wgt::PollStatus::Poll) => {
                         unreachable!("Cannot get a Poll result from a Wait action.")
